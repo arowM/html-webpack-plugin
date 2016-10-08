@@ -520,7 +520,7 @@ HtmlWebpackPlugin.prototype.injectAssetsIntoXml = function (xml, assets, assetTa
       xml += svg.join('');
     }
   }
-  return html;
+  return xml;
 };
 
 /**
