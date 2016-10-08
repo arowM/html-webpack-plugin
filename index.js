@@ -275,7 +275,7 @@ HtmlWebpackPlugin.prototype.postProcessHtml = function (html, assets, assetTags)
     // Inject
     .then(function () {
       if (self.options.inject) {
-        return self.injectAssetsIntoHtml(html, assets, assetTags);
+        return self.injectAssetsIntoXml(html, assets, assetTags);
       } else {
         return html;
       }
