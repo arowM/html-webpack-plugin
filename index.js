@@ -24,7 +24,7 @@ function HtmlWebpackPlugin (options) {
     chunks: 'all',
     excludeChunks: [],
     title: 'Webpack App',
-    xhtml: false
+    xhtml: true
   }, options);
 }
 
@@ -145,12 +145,12 @@ HtmlWebpackPlugin.prototype.apply = function (compiler) {
       .then(function (html) {
         // Prepare script and link tags
         var assetTags = self.generateAssetTags(assets);
-        var pluginArgs = {head: assetTags.head, body: assetTags.body, plugin: self, chunks: chunks, outputName: self.childCompilationOutputName};
+        var pluginArgs = {svg: assetTags.svg, plugin: self, chunks: chunks, outputName: self.childCompilationOutputName};
         // Allow plugins to change the assetTag definitions
         return applyPluginsAsyncWaterfall('html-webpack-plugin-alter-asset-tags', pluginArgs)
           .then(function () {
               // Add the stylesheets, scripts and so on to the resulting html
-            return self.postProcessHtml(html, assets, { body: pluginArgs.body, head: pluginArgs.head });
+            return self.postProcessHtml(html, assets, { svg: pluginArgs.svg });
           });
       })
       // Allow plugins to change the html after assets are injected
@@ -482,12 +482,11 @@ HtmlWebpackPlugin.prototype.generateAssetTags = function (assets) {
     };
   });
   // Injection targets
-  var head = [];
-  var body = [];
+  var svg = [];
 
-  // If there is a favicon present, add it to the head
+  // If there is a favicon present, add it to the svg
   if (assets.favicon) {
-    head.push({
+    svg.push({
       tagName: 'link',
       selfClosingTag: selfClosingTag,
       attributes: {
@@ -496,66 +495,30 @@ HtmlWebpackPlugin.prototype.generateAssetTags = function (assets) {
       }
     });
   }
-  // Add styles to the head
-  head = head.concat(styles);
-  // Add scripts to body or head
-  if (this.options.inject === 'head') {
-    head = head.concat(scripts);
-  } else {
-    body = body.concat(scripts);
+  // Add scripts to svg
+  if (this.options.inject) {
+    svg = svg.concat(scripts);
   }
-  return {head: head, body: body};
+  return {svg: svg};
 };
 
 /**
- * Injects the assets into the given html string
+ * Injects the assets into the given xml string
  */
-HtmlWebpackPlugin.prototype.injectAssetsIntoHtml = function (html, assets, assetTags) {
-  var htmlRegExp = /(<html[^>]*>)/i;
-  var headRegExp = /(<\/head>)/i;
-  var bodyRegExp = /(<\/body>)/i;
-  var body = assetTags.body.map(this.createHtmlTag);
-  var head = assetTags.head.map(this.createHtmlTag);
+HtmlWebpackPlugin.prototype.injectAssetsIntoXml = function (xml, assets, assetTags) {
+  var svgRegExp = /(<\/svg>)/i;
+  var svg = assetTags.svg.map(this.createHtmlTag);
 
-  if (body.length) {
-    if (bodyRegExp.test(html)) {
-      // Append assets to body element
-      html = html.replace(bodyRegExp, function (match) {
-        return body.join('') + match;
+  if (svg.length) {
+    if (svgRegExp.test(xml)) {
+      // Append assets to svg element
+      xml = xml.replace(svgRegExp, function (match) {
+        return svg.join('') + match;
       });
     } else {
-      // Append scripts to the end of the file if no <body> element exists:
-      html += body.join('');
+      // Append scripts to the end of the file if no <svg> element exists:
+      xml += svg.join('');
     }
-  }
-
-  if (head.length) {
-    // Create a head tag if none exists
-    if (!headRegExp.test(html)) {
-      if (!htmlRegExp.test(html)) {
-        html = '<head></head>' + html;
-      } else {
-        html = html.replace(htmlRegExp, function (match) {
-          return match + '<head></head>';
-        });
-      }
-    }
-
-    // Append assets to head element
-    html = html.replace(headRegExp, function (match) {
-      return head.join('') + match;
-    });
-  }
-
-  // Inject manifest into the opening html tag
-  if (assets.manifest) {
-    html = html.replace(/(<html[^>]*)(>)/i, function (match, start, end) {
-      // Append the manifest only if no manifest was specified
-      if (/\smanifest\s*=/.test(match)) {
-        return match;
-      }
-      return start + ' manifest="' + assets.manifest + '"' + end;
-    });
   }
   return html;
 };
