@@ -1,7 +1,7 @@
 {
-  "name": "html-webpack-plugin",
+  "name": "svg-webpack-plugin",
   "version": "2.23.0",
-  "description": "Simplifies creation of HTML files to serve your webpack bundles",
+  "description": "Simplifies creation of SVG files to serve your webpack bundles",
   "main": "index.js",
   "files": [
     "index.js",
